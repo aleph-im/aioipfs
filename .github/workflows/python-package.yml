@@ -36,7 +36,7 @@ jobs:
     - name: extract
       run: |
         tar -C $GITHUB_WORKSPACE -xzvf kubo_linux-amd64.tar.gz
-        echo "${GITHUB_WORKSPACE}/go-ipfs" >> $GITHUB_PATH
+        echo "${GITHUB_WORKSPACE}/kubo" >> $GITHUB_PATH
 
     - name: Test with pytest
       run: |

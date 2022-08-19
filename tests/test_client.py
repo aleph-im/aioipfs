@@ -14,7 +14,7 @@ import aioipfs
 
 
 def ipfs_getconfig_var(var):
-    sp_getconfig = subprocess.Popen(['kubo', 'config',
+    sp_getconfig = subprocess.Popen(['ipfs', 'config',
                                      var], stdout=subprocess.PIPE)
     stdout, stderr = sp_getconfig.communicate()
     return stdout.decode()
@@ -112,7 +112,7 @@ def ipfsdaemon():
     ipfs_config_json('Experimental.FilestoreEnabled', 'true')
 
     # Run the daemon and wait a bit
-    sp = subprocess.Popen(['kubo', 'daemon'],
+    sp = subprocess.Popen(['ipfs', 'daemon'],
                           stdout=subprocess.PIPE)
     time.sleep(1)
 
