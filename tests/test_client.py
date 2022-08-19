@@ -14,7 +14,7 @@ import aioipfs
 
 
 def ipfs_getconfig_var(var):
-    sp_getconfig = subprocess.Popen(['ipfs', 'config',
+    sp_getconfig = subprocess.Popen(['kubo', 'config',
                                      var], stdout=subprocess.PIPE)
     stdout, stderr = sp_getconfig.communicate()
     return stdout.decode()
