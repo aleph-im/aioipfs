@@ -112,7 +112,7 @@ def ipfsdaemon():
     ipfs_config_json('Experimental.FilestoreEnabled', 'true')
 
     # Run the daemon and wait a bit
-    sp = subprocess.Popen(['ipfs', 'daemon'],
+    sp = subprocess.Popen(['kubo', 'daemon'],
                           stdout=subprocess.PIPE)
     time.sleep(1)
 
