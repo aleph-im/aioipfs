@@ -1,6 +1,6 @@
 import json
 import asyncio
-import sys
+import multibase
 
 from aiohttp.web_exceptions import (HTTPError,
                                     HTTPInternalServerError,
@@ -71,16 +71,23 @@ class SubAPI(object):
                                                 headers=headers,
                                                 params=params) as response:
                 if response.status in HTTP_ERROR_CODES:
-                    msg, code = self.decode_error(
-                        await response.read()
-                    )
+                    response_text = await response.read()
+                    msg, code = self.decode_error(response_text)
 
                     if msg and code:
                         raise APIError(code=code,
                                        message=msg,
                                        http_status=response.status)
+                    elif msg == 'not pinned or pinned indirectly':
+                        raise NotPinnedError(code=code,
+                                             message=msg,
+                                             http_status=response.status)
+                    elif msg.endswith('invalid CID: selected encoding not supported'):
+                        raise InvalidCIDError(code=code,
+                                              message=msg,
+                                              http_status=response.status)
                     else:
-                        raise UnknownAPIError()
+                        raise UnknownAPIError(message=response_text, http_status=response.status)
 
                 if outformat == 'text':
                     return await response.text()
@@ -165,8 +172,8 @@ class SubAPI(object):
         except (ClientPayloadError,
                 ClientConnectorError,
                 ServerDisconnectedError,
-                Exception):
-            raise IPFSConnectionError('Connection/payload error')
+                Exception) as e:
+            raise IPFSConnectionError('Connection/payload error: {}'.format(e))
 
         if new_session is True:
             await session.close()

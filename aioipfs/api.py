@@ -1,7 +1,12 @@
+import io
+import json
 import os.path
 import tarfile
 import tempfile
-import sys
+from typing import Any, Optional
+
+import aiohttp
+import multibase
 import base58
 import base64
 from pathlib import Path
@@ -1004,7 +1009,7 @@ class PubSubAPI(SubAPI):
         return await self.fetch_json(
             self.url('pubsub/peers'), params=params)
 
-    async def pub(self, topic, data):
+    async def pub(self, topic, data: Optional[str]):
         """
         Publish a message to a given pubsub topic.
 
@@ -1012,8 +1017,21 @@ class PubSubAPI(SubAPI):
         :param str data: message data
         """
 
-        return await self.post(self.url('pubsub/pub'),
-                               None, params=quote_args(topic, data))
+        params = {
+            ARG_PARAM: multibase.encode(
+                encoding='base64url',
+                data=topic
+            ).decode("utf-8")
+        }
+
+        form = aiohttp.FormData()
+        form.add_field('file', io.StringIO(data))
+
+        return await self.post(
+            self.url('pubsub/pub'),
+            data=form,
+            params=params,
+        )
 
     async def sub(self, topic, discover=True, timeout=None, read_timeout=None):
         """
@@ -1027,8 +1045,11 @@ class PubSubAPI(SubAPI):
             the same topic
         """
 
-        params = {ARG_PARAM: topic, 'discover': boolarg(discover),
-                  'stream-channels': boolarg(True)}
+        params = {
+            ARG_PARAM: multibase.encode(encoding='base64url', data=topic).decode("utf-8"),
+            'discover': boolarg(discover),
+            'stream-channels': boolarg(True)
+        }
 
         async for message in self.mjson_decode(
                 self.url('pubsub/sub'),
@@ -1040,8 +1061,8 @@ class PubSubAPI(SubAPI):
                 params=params):
             try:
                 converted = self.decode_message(message)
-            except Exception:
-                print('Could not decode pubsub message ({0})'.format(topic),
+            except Exception as e:
+                print('Could not decode pubsub message ({0}): {1}'.format(topic, e),
                       file=sys.stderr)
             else:
                 yield converted
@@ -1055,11 +1076,10 @@ class PubSubAPI(SubAPI):
         """
 
         conv_msg = {}
-        conv_msg['from'] = base58.b58encode(
-            base64.b64decode(psmsg['from']))
-        conv_msg['data'] = base64.b64decode(psmsg['data'])
-        conv_msg['seqno'] = base64.b64decode(psmsg['seqno'])
-        conv_msg['topicIDs'] = psmsg['topicIDs']
+        conv_msg['from'] = psmsg['from']
+        conv_msg['data'] = multibase.decode(psmsg['data'])
+        conv_msg['seqno'] = multibase.decode(psmsg['seqno'])
+        conv_msg['topicIDs'] = [multibase.decode(topic).decode("utf-8") for topic in psmsg['topicIDs']]
         return conv_msg
 
 
